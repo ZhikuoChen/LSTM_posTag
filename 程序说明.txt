@@ -1,0 +1,16 @@
+遍历预训练好的词向量文件，建立一个字典，键为从上到下的每个词，值为该词对应的编号。最后加入'unk'对应的编号，其
+词向量用随机产生的200维数据表示。同时建立一个word_lookup用于后面的embedding层。遍历整个训练集，将一句话
+变成由该单词对应的编号组成的列表，同时其tag也用tag_vocab对应的编号表示，另外添加单词的另一项特征，判断该单词
+的大写状态，全部大写用数字2表示，首字母大写用1表示，全部小写用0表示。建立一个cap_lookup，
+为[[1,0,0],[0,1,0],[0,0,1]]得到一个二维列表，每个元素为一个句子。而该句子又是由每个单词
+的(train_word_numbers, train_caps, train_tag_numbers)组成的列表。然后一次只训练一个句子,所以不需要进行
+句子填充。
+构建BLSTM网络:embedding层，利用已建立的word_lookup和输入的train_word_numbers得到word_embbeding，
+shape为[1,num_words,embedding_size],利用已建立的cap_lookup和输入的train_caps得到cap_embbeding
+(1,num_words,3)然后将其reshape为[1*num_words,3]，将其乘以[3,200]维的权重w,w为随机产生的数。
+将cap_embbeding再reshape成[1,num_words,200]和word_embbeding得到总的embedding输入，将其进行dropout操作，
+作为blstm的输入。blstm层:lstm_size为64，经过一层双向BLSTM得到flat_output_fw和flat_output_fw，分别将其
+reshape成[-1,lstm_size]的形状，然后经过projection层，分别乘以对应的权值(即[lstm_size,output_size]的随机
+数)并加上[output_size]的偏置，得到self.logits将其reshape为[1,num_words,output_size]，然后经过softmax层，
+得到self.loss,使用Adagrad优化器进行求解.learning_rate设置为0.003。
+本程序训练结束后，测试集的准确率达到了92.31%
